@@ -3,42 +3,45 @@ import time
 import sys
 con = 0
 def setup():
+    global con
     try:
-        global con
         con = serial.Serial(port='/dev/ttyACM0',baudrate=115200,parity=serial.PARITY_NONE,stopbits=serial.STOPBITS_ONE,bytesize=serial.EIGHTBITS,timeout = 0)
-        print(con.name)
+        #print(con.name)
     except serial.SerialException:
         print "cannot find the multiwii board son"
 
-def read(ser):
+def read():
+        global con
         try:
-                print "read called"
+                #print "read called"
                 response = ""
                 time.sleep(0.01)
-                c = ser.inWaiting()
-                response = ser.read(c)
+                c = con.inWaiting()
+                response = con.read(c)
                 return response.encode('hex')
         except Exception:
+                print "read failed"
                 setup()
-                print "Exception at read"
                 
 
-def write(con,code):
+def write(code):
+        global con
         try:
-                print "write called"
+                #print "write called"
                 ser_data="$M<"+chr(0)+chr(code)+''+chr(code)
                 con.write(ser_data)
         except Exception:
-                print "exception at write"
+                #print "exception at write"
+                print "write failed"
+                setup()
     
     
         
 def main():
-        global con
         while True:
                 time.sleep(1)
-                write(con,102)
-                print read(con)
+                write(102)
+                print read()
 
 
 if __name__ == "__main__":
