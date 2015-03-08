@@ -1,15 +1,31 @@
 import serial
 import time
 import sys
+
+#///////////////////////////////////////
+
+MULTIWII_PORT = '/dev/ttyUSB2'
+AVIAN_RADIO_PORT = '/dev/ttyACM1'
+
+
+#/////////////////////////////////////
+
 con = 0
+conrh = 0
+
+
 def setup():
     global con
+    global conrh
     try:
-        con = serial.Serial(port='/dev/ttyACM0',baudrate=115200,parity=serial.PARITY_NONE,stopbits=serial.STOPBITS_ONE,bytesize=serial.EIGHTBITS,timeout = 0)
+        con = serial.Serial(port=MULTIWII_PORT,baudrate=115200,parity=serial.PARITY_NONE,stopbits=serial.STOPBITS_ONE,bytesize=serial.EIGHTBITS,timeout = 0)
         #print(con.name)
     except serial.SerialException:
         print "cannot find the multiwii board son"
-
+    try:
+        conrh= serial.Serial(port=AVIAN_RADIO_PORT,baudrate=9600,parity=serial.PARITY_NONE,stopbits=serial.STOPBITS_ONE,bytesize=serial.EIGHTBITS,timeout = 0)
+    except serial.SerialException:
+        print "cannot find the rh son"
 def read():
         global con
         try:
@@ -38,11 +54,14 @@ def write(code):
     
         
 def main():
+        print "trying to make connections to boards"
+        setup()
         while True:
                 time.sleep(1)
                 write(102)
-                print read()
-
+                data = read()
+                print data
+                conrh.write(data);
 
 if __name__ == "__main__":
         main()
