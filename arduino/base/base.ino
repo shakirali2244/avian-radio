@@ -1,50 +1,81 @@
-// nrf24_client.pde
-// -*- mode: C++ -*-
-// Example sketch showing how to create a simple messageing client
-// with the RH_NRF24 class. RH_NRF24 class does not provide for addressing or
-// reliability, so you should only use RH_NRF24 if you do not need the higher
-// level messaging abilities.
-// It is designed to work with the other example nrf24_server.
-// Tested on Uno with Sparkfun NRF25L01 module
-// Tested on Anarduino Mini (http://www.anarduino.com/mini/) with RFM73 module
-// Tested on Arduino Mega with Sparkfun WRL-00691 NRF25L01 module
 #include <SPI.h>
 #include <RH_NRF24.h>
-// Singleton instance of the radio driver
+#include <Servo.h> 
 RH_NRF24 nrf24;
-// RH_NRF24 nrf24(8, 7); // use this to be electrically compatible with Mirf
-// RH_NRF24 nrf24(8, 10);// For Leonardo, need explicit SS pin
-// RH_NRF24 nrf24(8, 7); // For RFM73 on Anarduino Mini
-void setup()
-{
-Serial.begin(9600);
-while (!Serial)
-; // wait for serial port to connect. Needed for Leonardo only
-if (!nrf24.init())
-Serial.println("init failed");
-// Defaults after init are 2.402 GHz (channel 2), 2Mbps, 0dBm
-if (!nrf24.setChannel(1))
-Serial.println("setChannel failed");
-if (!nrf24.setRF(RH_NRF24::DataRate2Mbps, RH_NRF24::TransmitPower0dBm))
-Serial.println("setRF failed");
-}
-void loop()
-{
+Servo throttle;
+Servo roll;
+Servo pitch;
+Servo yaw;
 
-//uint8_t data[] = "Hello World!";
-//nrf24.send(data, sizeof(data));
-//nrf24.waitPacketSent();
-// Now wait for a reply
+String safeVal = "00323232";
+String payload;
+char mem[2];
+char *ptr;
+
+void setup(){
+  Serial.begin(9600);
+  while (!Serial); 
+  if (!nrf24.init())
+    Serial.println("init failed");
+  if (!nrf24.setChannel(1))
+    Serial.println("setChannel failed");
+  if (!nrf24.setRF(RH_NRF24::DataRate2Mbps, RH_NRF24::TransmitPower0dBm))
+    Serial.println("setRF failed");
+  Serial.println("all passed");
+  throttle.attach(3);
+  roll.attach(5);
+  pitch.attach(6);
+  yaw.attach(9);
+}
+
+unsigned long hex2int(char *a, unsigned int len)
+{
+   int i;
+   unsigned long val = 0;
+
+   for(i=0;i<len;i++)
+      if(a[i] <= 57)
+       val += (a[i]-48)*(1<<(4*(len-1-i)));
+      else
+       val += (a[i]-55)*(1<<(4*(len-1-i)));
+   return val;
+}
+
+void ParseAndWrite(char payload[]){
+  mem[0] = payload[0];
+  mem[1] = payload[1];
+  ptr = mem;
+  unsigned long throttle = hex2int(ptr,2);
+  mem[0] = payload[2];
+  mem[1] = payload[3];
+  ptr = mem;
+  unsigned long roll = hex2int(ptr,2); 
+  mem[0] = payload[4];
+  mem[1] = payload[5];
+  ptr = mem;
+  unsigned long pitch = hex2int(ptr,2);
+  mem[0] = payload[6];
+  mem[1] = payload[7];
+  ptr = mem;
+  unsigned long yaw = hex2int(ptr,2);
+  Serial.println("tadasd");
+  Serial.println("throttle,roll,pitch,yaw " + String((throttle+100)*10,DEC) + String((roll+100)*10,DEC) + String((pitch+100)*10,DEC) + String((yaw+100)*10,DEC));
+}
+
+void loop(){
 uint8_t buf[RH_NRF24_MAX_MESSAGE_LEN];
 uint8_t len = sizeof(buf);
+if (nrf24.recv(buf, &len)){
+Serial.println("got payload: ");
 
-// Should be a reply message for us now
-if (nrf24.recv(buf, &len))
-{
-Serial.print("got reply: ");
-Serial.println((char*)buf);
+char buffer[] = {0};
+buffer = (char*)buf;
+ParseAndWrite(buffer);
+}else{
+  payload = safeVal;
+  char buffer[10];
+  payload.toCharArray(buffer,10);
+  ParseAndWrite(buffer);
 }
-
-
-delay(400);
+  delay(400);
 }
